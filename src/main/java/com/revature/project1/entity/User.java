@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-
 @Setter
 @Getter
 @Data
@@ -25,9 +23,8 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @ManyToOne
-    @JoinColumn(name = "roleId")
-    private Role role;
+    @Column(name = "roleId")
+    private Integer roleId;
 
     public User() {
 
@@ -38,8 +35,8 @@ public class User {
         this.password = password;
     }
 
-    public User(Role role, String username, String password) {
-        this.role = role;
+    public User(Integer roleId, String username, String password) {
+        this.roleId = roleId;
         this.username = username;
         this.password = password;
     }

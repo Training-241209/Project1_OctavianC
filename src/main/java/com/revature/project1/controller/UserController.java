@@ -16,23 +16,23 @@ import com.revature.project1.service.UserService;
 @RestController
 @RequestMapping("/user")
 public class UserController {
-    
+
     private final UserService userService;
     private final ReimbursementService reimbursementService;
 
     @Autowired
-    public UserController(UserService userService, ReimbursementService reimbursementService){
+    public UserController(UserService userService, ReimbursementService reimbursementService) {
         this.userService = userService;
         this.reimbursementService = reimbursementService;
     }
 
     @PostMapping("/register")
-    private ResponseEntity<User> resgisterUser(@RequestBody User user){
-        if(!user.getUsername().isBlank() && (user.getPassword().length() >= 6)  &&
-        !isDuplicateAttempt(userService.getAllUsers(), user)){
+    private ResponseEntity<User> resgisterUser(@RequestBody User user) {
+        if (!user.getUsername().isBlank() && (user.getPassword().length() >= 6) &&
+                !isDuplicateAttempt(userService.getAllUsers(), user)) {
             return ResponseEntity.ok().body(userService.registerUser(user));
-        }else {
-            return ResponseEntity.status(400).body(new User());
+        } else {
+            return ResponseEntity.status(409).body(new User());
         }
     }
 

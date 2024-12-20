@@ -70,7 +70,7 @@ public class AdminController {
                     usernames.add(oneUser.getUsername());
                 }
                 if (usernames.contains(username)) {
-                    if (userService.findUSerByUsername(username).getRole().getRoleId() == 1) {
+                    if (userService.findUSerByUsername(username).getRoleId() == 1) {
                         return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "DENIED"));
                     }
                 }
