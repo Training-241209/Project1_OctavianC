@@ -40,4 +40,12 @@ public class UserService {
     public String encodePassword(String str){
         return passwordEncoder.encode(str);
     }
+
+    public User findUSerByUsername(String str){
+        return userRepository.findUserByUsername(str).get();
+    }
+
+    public void deleteUser(User user){
+         userRepository.delete(user);
+    }
 }

@@ -5,12 +5,15 @@ import java.util.List;
 
 import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +22,7 @@ import com.revature.project1.entity.User;
 import com.revature.project1.service.AuthenticationService;
 import com.revature.project1.service.ReimbursementService;
 import com.revature.project1.service.UserService;
+import com.revature.project1.utility.JwtUtil;
 
 @RestController
 @RequestMapping("/admin")
@@ -51,23 +55,44 @@ public class AdminController {
         return ResponseEntity.ok().body(reimbursementService.findPendingTickets("PENDING"));
     }
 
-    @PutMapping("/acceptticket/{id}")
+    @PutMapping("/denyticket/{id}")
     private ResponseEntity<Reimbursement> updateTicketStatus(@PathVariable int id,
-            @RequestBody String update) {
-        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "APPROVED"));
+            @RequestBody String update, @RequestHeader("Authorization") String myToken) {
+        if (myToken == null || !myToken.startsWith("Bearer ")) {
+            return ResponseEntity.status(403).body(new Reimbursement());
+        } else {
+            String possibleToken = myToken.substring(7);
+            try {
+                String username = JwtUtil.validateToken(possibleToken);
+                List<User> users = userService.getAllUsers();
+                List<String> usernames = new ArrayList<>();
+                for (User oneUser : users) {
+                    usernames.add(oneUser.getUsername());
+                }
+                if (usernames.contains(username)) {
+                    if (userService.findUSerByUsername(username).getRole().getRoleId() == 1) {
+                        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "DENIED"));
+                    }
+                }
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(403).body(new Reimbursement());
+            }
+        }
+        return ResponseEntity.status(403).body(new Reimbursement());
 
     }
 
-    @PutMapping("/denyticket/{id}")
+    @PutMapping("/acceptticket/{id}")
     private ResponseEntity<Reimbursement> denyTicket(@PathVariable int id,
             @RequestBody String update) {
-        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "DENIED"));
+        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "APPROVED"));
 
     }
 
     @PostMapping("/login")
     private ResponseEntity<User> loginIntoAccount(@RequestBody User user) {
         int statusCode = 404;
+        String theToken = "";
         List<User> users = userService.getAllUsers();
         User targetUser = new User();
         if (authenticationService.isLoggedIn(user)) {
@@ -75,6 +100,7 @@ public class AdminController {
             for (User someUser : users) {
                 if (user.getUsername().equals(someUser.getUsername())) {
                     targetUser = someUser;
+                    theToken = JwtUtil.generateToken(targetUser.getUsername());
                     break;
                 }
 
@@ -82,8 +108,18 @@ public class AdminController {
         } else if (users.contains(user)) {
             statusCode = 403;
         }
-
-        return ResponseEntity.status(statusCode).body(targetUser);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("token", theToken);
+        return new ResponseEntity<>(targetUser, headers, statusCode);
     }
+
+    /*
+     * @DeleteMapping("/deleteuser")
+     * private ResponseEntity<User> deleteUser(@Requestbody String userName) {
+     * User theUser = userService.findUSerByUsername(userName);
+     * userService.deleteUser(theUser);
+     * return ResponseEntity.ok().body(theUser);
+     * }
+     */
 
 }
