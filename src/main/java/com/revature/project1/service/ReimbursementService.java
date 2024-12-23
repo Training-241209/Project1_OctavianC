@@ -31,12 +31,28 @@ public class ReimbursementService {
         return allPendingTickets;
         }
         
-    public Reimbursement updateStatus (Long id, String newStatus)  {
+    public Reimbursement updateStatusApproved (Long id)  {
         Reimbursement reimbursement = new Reimbursement();
         reimbursement = reimbursementRepository.findById(id)
                 .orElseThrow(() ->  new RuntimeException("The ticket was not found") );
-        reimbursement.setStatus(newStatus);
+        reimbursement.setStatus("APPROVED");
         return reimbursementRepository.save(reimbursement);
     }  
+
+    public Reimbursement updateStatusDenied (Long id)  {
+        Reimbursement reimbursement = new Reimbursement();
+        reimbursement = reimbursementRepository.findById(id)
+                .orElseThrow(() ->  new RuntimeException("The ticket was not found") );
+        reimbursement.setStatus("DENIED");
+        return reimbursementRepository.save(reimbursement);
+    }  
+
+    public List<Reimbursement> getAllMyTickets(Integer userId){
+        return reimbursementRepository.findByUserId(userId);
+    }
+
+   // public List<Reimbursement> findByUserIdAndStatus(Integer userId){
+    //    return reimbursementRepository.findByUserIdAndStatus(userId);
+   // }
     }
 

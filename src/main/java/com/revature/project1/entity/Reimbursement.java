@@ -26,19 +26,18 @@ public class Reimbursement {
     @Column(name = "status")
     private String status;
 
-    @ManyToOne
-    @JoinColumn(name = "userId")
-    private User user;
+    @Column(name = "userId")
+    private Integer userId;
 
     public Reimbursement() {
 
     }
 
-    public Reimbursement(String description, Double amount, String status, User user) {
+    public Reimbursement(String description, Double amount, String status, Integer userId) {
         this.status = status;
         this.description = description;
         this.amount = amount;
-        this.user = user;
+        this.userId= userId;
     }
 
     @Override

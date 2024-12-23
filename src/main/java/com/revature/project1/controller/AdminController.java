@@ -24,6 +24,8 @@ import com.revature.project1.service.ReimbursementService;
 import com.revature.project1.service.UserService;
 import com.revature.project1.utility.JwtUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/admin")
 public class AdminController {
@@ -31,61 +33,63 @@ public class AdminController {
     private final UserService userService;
     private final ReimbursementService reimbursementService;
     private final AuthenticationService authenticationService;
+    private final JwtUtil jwtUtil;
 
     @Autowired
     public AdminController(UserService userService, ReimbursementService reimbursementService,
-            AuthenticationService authenticationService) {
+            AuthenticationService authenticationService, JwtUtil jwtUtil) {
         this.userService = userService;
         this.reimbursementService = reimbursementService;
         this.authenticationService = authenticationService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/allusers")
-    private ResponseEntity<List<User>> getAllUsers() {
+    private ResponseEntity<List<User>> getAllUsers(HttpServletRequest request,
+    @RequestHeader ("theUsername") String theUsername) {
+        String authUsername = (String) request.getAttribute("username");
         List<User> allUsers = userService.getAllUsers();
-        if (allUsers.size() > 0) {
+        if (allUsers.size() > 0 && authUsername.equals(theUsername) ){
             return ResponseEntity.ok().body(allUsers);
-        } else {
+        } else if (authUsername.equals(theUsername)){
             return ResponseEntity.ok().body(new ArrayList<>());
+        } else{
+            return ResponseEntity.status(401).body(new ArrayList<>());
         }
     }
 
     @GetMapping("/allpending")
-    private ResponseEntity<List<Reimbursement>> allPendingTickets() {
-        return ResponseEntity.ok().body(reimbursementService.findPendingTickets("PENDING"));
+    private ResponseEntity<List<Reimbursement>> allPendingTickets(HttpServletRequest request,
+            @RequestHeader ("theUsername") String theUsername) {
+        String authUsername = (String) request.getAttribute("username");
+        if (authUsername.equals(theUsername)) {
+            return ResponseEntity.ok().body(reimbursementService.findPendingTickets("PENDING"));
+        } else {
+            return ResponseEntity.status(401).body(new ArrayList<>());
+        }
     }
 
     @PutMapping("/denyticket/{id}")
-    private ResponseEntity<Reimbursement> updateTicketStatus(@PathVariable int id,
-            @RequestBody String update, @RequestHeader("Authorization") String myToken) {
-        if (myToken == null || !myToken.startsWith("Bearer ")) {
-            return ResponseEntity.status(403).body(new Reimbursement());
-        } else {
-            String possibleToken = myToken.substring(7);
-            try {
-                String username = JwtUtil.validateToken(possibleToken);
-                List<User> users = userService.getAllUsers();
-                List<String> usernames = new ArrayList<>();
-                for (User oneUser : users) {
-                    usernames.add(oneUser.getUsername());
-                }
-                if (usernames.contains(username)) {
-                    if (userService.findUSerByUsername(username).getRoleId() == 1) {
-                        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "DENIED"));
-                    }
-                }
-            } catch (RuntimeException e) {
-                return ResponseEntity.status(403).body(new Reimbursement());
-            }
-        }
-        return ResponseEntity.status(403).body(new Reimbursement());
+    private ResponseEntity<Reimbursement> denyTicket(@PathVariable int id, HttpServletRequest request,
+    @RequestBody String theUsername) {
+        String authUsername = (String) request.getAttribute("username");
+        if(authUsername.equals(theUsername)){
+        return ResponseEntity.ok().body(reimbursementService.updateStatusDenied((long) id));
+    } else {
+       return  ResponseEntity.status(401).body(new Reimbursement());
+    }
 
     }
 
     @PutMapping("/acceptticket/{id}")
-    private ResponseEntity<Reimbursement> denyTicket(@PathVariable int id,
-            @RequestBody String update) {
-        return ResponseEntity.ok().body(reimbursementService.updateStatus((long) id, "APPROVED"));
+    private ResponseEntity<Reimbursement> approveTicket(@PathVariable int id, HttpServletRequest request,
+    @RequestBody String theUsername) {
+        String authUsername = (String) request.getAttribute("username");
+        if(authUsername.equals(theUsername)){
+        return ResponseEntity.ok().body(reimbursementService.updateStatusApproved((long) id));
+        } else {
+            return  ResponseEntity.status(401).body(new Reimbursement());
+        }
 
     }
 
@@ -100,8 +104,10 @@ public class AdminController {
             for (User someUser : users) {
                 if (user.getUsername().equals(someUser.getUsername())) {
                     targetUser = someUser;
-                    theToken = JwtUtil.generateToken(targetUser.getUsername());
-                    break;
+                    if (someUser.getRoleId() == 1) {
+                        theToken = jwtUtil.generateToken(targetUser.getUsername());
+                        break;
+                    }
                 }
 
             }
@@ -113,13 +119,17 @@ public class AdminController {
         return new ResponseEntity<>(targetUser, headers, statusCode);
     }
 
-    /*
-     * @DeleteMapping("/deleteuser")
-     * private ResponseEntity<User> deleteUser(@Requestbody String userName) {
-     * User theUser = userService.findUSerByUsername(userName);
-     * userService.deleteUser(theUser);
-     * return ResponseEntity.ok().body(theUser);
-     * }
-     */
+    @DeleteMapping("/deleteuser/{id}")
+    private ResponseEntity<User> deleteUser(@PathVariable Integer id) {
+        try {
+            User user = new User();
+            user = userService.findById(id);
+            userService.deleteUser(user);
+            return ResponseEntity.ok().body(user);
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(new User());
+        }
+
+    }
 
 }

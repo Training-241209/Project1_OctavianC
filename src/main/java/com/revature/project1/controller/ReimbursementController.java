@@ -38,8 +38,11 @@ public class ReimbursementController {
         }
         if (!reimbursement.getDescription().isBlank() &&
                 reimbursement.getDescription().length() <= 255 &&
-                idList.contains(reimbursement.getUser().getUserId())) {
-            return ResponseEntity.ok().body(reimbursementService.saveReimbursement(reimbursement));
+                idList.contains(reimbursement.getUserId())) {
+                    if(reimbursement.getStatus() == null){
+                        reimbursement.setStatus("PENDING");
+                    }
+                    return ResponseEntity.ok().body(reimbursementService.saveReimbursement(reimbursement));
         } else {
             return ResponseEntity.status(400).build();
         }
